@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sticker Mockup Studio · 貼紙工藝模擬</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0b0a10;--panel:#15141c;--panel2:#1d1c26;--line:#2b2a36;
+    --txt:#eceaf2;--dim:#8a8898;--acc:#a26bff;--acc2:#ff6ba8;--acc3:#ffd166;
+  }
+  html,body{height:100%}
+  body{
+    background:radial-gradient(1200px 700px at 20% -10%,#1a1228 0%,#0b0a10 60%,#050408 100%);
+    color:var(--txt);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans TC',sans-serif;
+    min-height:100vh;padding:18px;-webkit-font-smoothing:antialiased;
+  }
+  #app{max-width:1560px;margin:0 auto}
+  header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+  header h1{font-size:1.4rem;font-weight:800;letter-spacing:-.3px;
+    background:linear-gradient(90deg,#fff,#a26bff 40%,#ff6ba8 75%,#ffd166);
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  header .tag{font-size:.66rem;letter-spacing:1.5px;text-transform:uppercase;
+    padding:5px 11px;border-radius:20px;border:1px solid var(--line);
+    background:var(--panel);color:var(--dim);font-weight:700}
+
+  .layout{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+  .stage-col{flex:1 1 720px;min-width:320px;display:flex;flex-direction:column;gap:12px}
+  .stage-wrap{background:#000;border-radius:14px;padding:10px;border:1px solid var(--line);
+    box-shadow:0 30px 60px rgba(0,0,0,.7);position:relative;overflow:hidden}
+  canvas#stage{display:block;width:100%;height:auto;border-radius:8px;
+    /* CSS checker only shows through where canvas is transparent */
+    background-color:#1a1a22;
+    background-image:
+      linear-gradient(45deg,#252530 25%, transparent 25%),
+      linear-gradient(-45deg,#252530 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%,#252530 75%),
+      linear-gradient(-45deg, transparent 75%,#252530 75%);
+    background-size: 24px 24px;
+    background-position: 0 0, 0 12px, 12px -12px, -12px 0px;
+    touch-action:none;cursor:grab}
+  canvas#stage.dragging{cursor:grabbing}
+
+  .transport{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+  .transport .info{font-family:ui-monospace,'SF Mono',Menlo,monospace;
+    font-size:.74rem;color:var(--dim);min-width:130px}
+
+  .btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);
+    padding:9px 16px;border-radius:9px;font-size:.82rem;font-weight:600;
+    cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:7px;
+    font-family:inherit;white-space:nowrap}
+  .btn:hover:not(:disabled){background:#282736;border-color:#3d3b52}
+  .btn:disabled{opacity:.35;cursor:not-allowed}
+  .btn.pri{background:linear-gradient(135deg,#a26bff,#ff6ba8);
+    border-color:rgba(255,255,255,.2);color:#fff;
+    box-shadow:0 6px 20px rgba(162,107,255,.35)}
+  .btn.pri:hover:not(:disabled){filter:brightness(1.1)}
+  .btn.cy{background:linear-gradient(135deg,#5c8aff,#7d5cff);
+    border-color:rgba(255,255,255,.2);color:#fff}
+  .btn.cy:hover:not(:disabled){filter:brightness(1.1)}
+  .btn.sm{padding:6px 11px;font-size:.74rem}
+
+  .panel{flex:0 0 400px;min-width:340px;max-width:460px;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:6px;max-height:calc(100vh - 190px);overflow-y:auto}
+  .panel::-webkit-scrollbar{width:9px}
+  .panel::-webkit-scrollbar-track{background:transparent}
+  .panel::-webkit-scrollbar-thumb{background:#2f2d42;border-radius:9px;border:2px solid var(--panel)}
+  .panel::-webkit-scrollbar-thumb:hover{background:#3d3b52}
+
+  details{border-radius:10px;overflow:hidden}
+  details+details{margin-top:4px}
+  summary{list-style:none;cursor:pointer;padding:11px 13px;border-radius:10px;
+    font-size:.74rem;font-weight:800;letter-spacing:1px;text-transform:uppercase;
+    color:var(--dim);display:flex;align-items:center;justify-content:space-between;
+    transition:.15s;user-select:none}
+  summary::-webkit-details-marker{display:none}
+  summary:hover{background:var(--panel2);color:var(--txt)}
+  details[open]>summary{color:var(--acc);background:var(--panel2)}
+  summary::after{content:'▸';font-size:.9rem;transition:.2s;opacity:.6}
+  details[open]>summary::after{transform:rotate(90deg)}
+
+  .sec{padding:6px 12px 14px}
+  .field{margin-bottom:11px}
+  .field:last-child{margin-bottom:2px}
+  .field label{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:.68rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    color:var(--dim);margin-bottom:6px}
+  .field label .val{color:var(--acc3);font-weight:700;
+    font-family:ui-monospace,monospace;font-size:.7rem}
+
+  input[type=text],select{width:100%;background:#0a0912;border:1px solid var(--line);
+    color:var(--txt);padding:9px 11px;border-radius:8px;font-size:.84rem;
+    font-family:inherit;transition:.15s;outline:none}
+  input[type=text]:focus,select:focus{border-color:var(--acc);
+    box-shadow:0 0 0 3px rgba(162,107,255,.14)}
+  select{cursor:pointer;appearance:none;
+    background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),
+      linear-gradient(135deg,var(--dim) 50%,transparent 50%);
+    background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;
+    background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:32px}
+
+  input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:5px;
+    background:#0a0912;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;
+    border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));
+    border:2px solid #15141c;cursor:grab;box-shadow:0 0 8px rgba(162,107,255,.45)}
+  input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;
+    background:linear-gradient(135deg,var(--acc),var(--acc2));
+    border:2px solid #15141c;cursor:grab}
+
+  input[type=color]{width:100%;height:36px;border:1px solid var(--line);
+    border-radius:8px;background:#0a0912;padding:3px;cursor:pointer}
+  .row{display:flex;gap:9px}
+  .row>*{flex:1;min-width:0}
+
+  .toggle{display:flex;align-items:center;gap:10px;padding:8px 11px;
+    background:#0a0912;border:1px solid var(--line);border-radius:8px;
+    cursor:pointer;transition:.15s;user-select:none}
+  .toggle:hover{border-color:#3d3b52}
+  .toggle input{appearance:none;width:32px;height:18px;border-radius:20px;
+    background:#26252e;position:relative;cursor:pointer;transition:.2s;
+    flex-shrink:0;outline:none}
+  .toggle input::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;
+    border-radius:50%;background:#5c5a68;transition:.2s}
+  .toggle input:checked{background:linear-gradient(90deg,var(--acc),var(--acc2))}
+  .toggle input:checked::after{transform:translateX(14px);background:#fff}
+  .toggle span{font-size:.76rem;font-weight:600;color:#c9c7d4}
+
+  .hint{font-size:.66rem;color:#66646e;line-height:1.5;margin-top:-4px;margin-bottom:10px}
+  .hint.warn{color:#ffcf7a}
+  .hint.warn::before{content:'⚠ ';color:#ff9a4a}
+  .split{height:1px;background:var(--line);margin:12px 0}
+
+  .craft-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}
+  .craft-btn{position:relative;padding:9px 10px 9px 40px;
+    background:#0a0912;border:1px solid var(--line);border-radius:9px;
+    cursor:pointer;transition:.15s;text-align:left;font-family:inherit;
+    color:var(--txt);overflow:hidden}
+  .craft-btn:hover{border-color:#4a4860;transform:translateY(-1px)}
+  .craft-btn.active{border-color:var(--acc);
+    box-shadow:0 0 0 3px rgba(162,107,255,.18);
+    background:linear-gradient(135deg,rgba(162,107,255,.12),rgba(255,107,168,.08))}
+  .craft-btn .swatch{position:absolute;left:8px;top:50%;transform:translateY(-50%);
+    width:26px;height:26px;border-radius:50%;border:1px solid rgba(255,255,255,.15);
+    box-shadow:inset 0 0 6px rgba(0,0,0,.4);overflow:hidden}
+  .craft-btn .name{font-size:.74rem;font-weight:700;color:var(--txt);
+    line-height:1.15;display:block}
+  .craft-btn .en{font-size:.6rem;color:var(--dim);font-weight:600;
+    letter-spacing:.3px;display:block;margin-top:2px}
+
+  .preview-thumb{width:100%;height:92px;border-radius:9px;
+    border:1px solid var(--line);background:#0a0912 center/contain no-repeat;
+    display:flex;align-items:center;justify-content:center;
+    color:var(--dim);font-size:.72rem;font-weight:600;
+    cursor:pointer;transition:.15s;overflow:hidden}
+  .preview-thumb:hover{border-color:var(--acc)}
+
+  .status{font-size:.74rem;color:var(--dim);padding:9px 13px;border-radius:9px;
+    background:#0a0912;border:1px dashed var(--line);text-align:center;
+    min-height:36px;display:flex;align-items:center;justify-content:center}
+  .status.ok{color:#7dffb0;border-color:#2a5a3d;background:#0d1a12}
+  .status.err{color:#ff8fb0;border-color:#5a2a3d;background:#1a0d14}
+
+  .progress{height:5px;background:#0a0912;border-radius:5px;overflow:hidden;
+    margin-top:8px;display:none}
+  .progress.on{display:block}
+  .progress i{display:block;height:100%;width:0%;
+    background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .2s}
+
+  @media(max-width:1100px){.panel{flex:1 1 100%;max-width:none;max-height:none}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <h1>✦ STICKER MOCKUP STUDIO</h1>
+    <span class="tag" id="tagCount">13 種工藝</span>
+    <span class="tag">3D 水晶浮雕</span>
+    <span class="tag">PNG · WebM</span>
+  </header>
+
+  <div class="layout">
+    <div class="stage-col">
+      <div class="stage-wrap"><canvas id="stage" width="1100" height="800"></canvas></div>
+      <div class="transport">
+        <input type="file" id="fileInput" accept="image/png,image/*" style="display:none">
+        <button class="btn" id="uploadBtn">📂 上傳 PNG</button>
+        <button class="btn" id="resetBtn">↺ 重設</button>
+        <span class="info" id="angleInfo">X 0°  ·  Y 0°</span>
+        <span style="flex:1"></span>
+        <button class="btn pri" id="pngBtn">⬇ PNG</button>
+        <button class="btn cy" id="webmBtn">🎬 錄影 WebM</button>
+      </div>
+      <div class="status ok" id="status">上傳一張透明 PNG 就可以開始 · 拖動畫布可直接調整角度</div>
+      <div class="progress" id="progress"><i></i></div>
+    </div>
+
+    <aside class="panel">
+
+      <details open>
+        <summary>📷 貼紙圖片</summary>
+        <div class="sec">
+          <div class="preview-thumb" id="thumb" style="margin-bottom:11px">
+            點擊上傳貼紙 PNG
+          </div>
+          <div class="row">
+            <button class="btn sm" id="uploadBtn2" style="flex:1;justify-content:center">📂 選擇檔案</button>
+            <button class="btn sm" id="demoBtn" style="flex:0 0 auto">🎨 範例</button>
+          </div>
+          <div class="hint" style="margin-top:10px">
+            建議用透明背景 PNG。<br>
+            會自動根據圖片形狀裁切，加上白邊同工藝效果。
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>✧ 貼紙工藝</summary>
+        <div class="sec">
+          <div class="craft-grid" id="craftGrid"></div>
+          <div class="split"></div>
+
+          <div class="field" id="dome3dField" style="display:none">
+            <label>滴膠立體感 <span class="val" id="dome3dVal">1.20</span></label>
+            <input type="range" id="dome3d" min="0" max="2.5" value="1.2" step="0.02">
+            <div class="hint" style="margin-top:6px">越大越凸；拉動角度時高光會掃過表面。</div>
+          </div>
+
+          <div id="glassShellField" style="display:none">
+            <label class="toggle"><input type="checkbox" id="shellOn" checked>
+              <span>加上浮雕玻璃外殼</span></label>
+            <div style="height:8px"></div>
+            <div class="field"><label>外殼厚度 <span class="val" id="shellIntensityVal">1.20</span></label>
+              <input type="range" id="shellIntensity" min="0" max="2.5" value="1.2" step="0.02"></div>
+            <div class="field"><label>外殼高度 <span class="val" id="shellHeightVal">1.00</span></label>
+              <input type="range" id="shellHeight" min="0" max="2" value="1" step="0.02"></div>
+            <div class="hint" style="margin-top:6px">
+              外殼永遠貼住貼紙嘅輪廓；拉動角度只會改變光暗方向。
+            </div>
+          </div>
+
+          <div class="field"><label>閃爍強度 <span class="val" id="shimmerVal">0.50</span></label>
+            <input type="range" id="shimmer" min="0" max="2" value="0.5" step="0.02"></div>
+          <div class="field"><label>工藝紋理密度 <span class="val" id="densityVal">1.00</span></label>
+            <input type="range" id="density" min="0.4" max="2.5" value="1" step="0.02"></div>
+          <div class="hint" style="margin-top:8px">
+            閃粉同閃點只會喺你改變角度時先動。
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>⟲ 3D 視角 / 閃爍角度</summary>
+        <div class="sec">
+          <div class="field"><label>水平角度 X <span class="val" id="angleXVal">0°</span></label>
+            <input type="range" id="angleX" min="-60" max="60" value="0" step="1"></div>
+          <div class="field"><label>垂直角度 Y <span class="val" id="angleYVal">0°</span></label>
+            <input type="range" id="angleY" min="-60" max="60" value="0" step="1"></div>
+          <div class="row" style="margin-top:6px">
+            <button class="btn sm" id="autoBtn" style="flex:1;justify-content:center">▶ 自動旋轉</button>
+            <button class="btn sm" id="angleResetBtn" style="flex:0 0 auto">0° 重設</button>
+          </div>
+          <div class="split"></div>
+          <div class="field"><label>自動旋轉速度 <span class="val" id="autoSpeedVal">80°/s</span></label>
+            <input type="range" id="autoSpeed" min="10" max="240" value="80" step="5">
+            <div class="hint" style="margin-top:6px">
+              數值越大轉得越快。拉到最大約 3 秒完成一個來回。
+            </div>
+          </div>
+          <div class="hint" style="margin-top:10px">
+            拖動畫布亦可直接改變角度。<br>
+            鐳射、閃粉、閃點都會跟角度變化。
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>📐 大小與旋轉</summary>
+        <div class="sec">
+          <div class="field"><label>大小 <span class="val" id="sizeVal">75%</span></label>
+            <input type="range" id="size" min="0.15" max="1.4" value="0.75" step="0.01"></div>
+          <div class="field"><label>平面旋轉 <span class="val" id="rotVal">0°</span></label>
+            <input type="range" id="rot" min="-45" max="45" value="0" step="1"></div>
+        </div>
+      </details>
+
+      <details>
+        <summary>◯ 白邊與裁切</summary>
+        <div class="sec">
+          <label class="toggle"><input type="checkbox" id="borderOn" checked>
+            <span>加上白邊 (die-cut)</span></label>
+          <div style="height:8px"></div>
+          <div class="field"><label>白邊寬度 <span class="val" id="borderVal">14 px</span></label>
+            <input type="range" id="borderW" min="0" max="48" value="14" step="1"></div>
+          <div class="field"><label>白邊不透明度 <span class="val" id="borderAlphaVal">1.00</span></label>
+            <input type="range" id="borderAlpha" min="0" max="1" value="1" step="0.01"></div>
+          <div class="field"><label>白邊顏色</label>
+            <input type="color" id="borderColor" value="#ffffff"></div>
+          <div class="split"></div>
+          <label class="toggle"><input type="checkbox" id="shapeFollow" checked>
+            <span>依圖片形狀裁切</span></label>
+          <div class="hint" style="margin-top:8px">
+            關掉的話會用圓角矩形裁切整張圖。
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>🌑 影子與背景</summary>
+        <div class="sec">
+          <div class="field"><label>立體陰影 <span class="val" id="shadowVal">0.55</span></label>
+            <input type="range" id="shadow" min="0" max="1" value="0.55" step="0.01"></div>
+          <div class="field"><label>背景</label>
+            <select id="bg">
+              <option value="transparent" selected>透明（棋盤只係預覽）</option>
+              <option value="white">白色</option>
+              <option value="gray">淺灰</option>
+              <option value="dark">深色</option>
+              <option value="custom">自訂顏色</option>
+            </select>
+          </div>
+          <div class="field" id="customBgField" style="display:none">
+            <label>自訂背景色</label>
+            <input type="color" id="customBgColor" value="#3a2a5a">
+          </div>
+          <div class="hint">
+            透明背景：PNG 匯出會保留透明；WebM 影片因格式限制會變成黑色。
+          </div>
+          <label class="toggle"><input type="checkbox" id="glossEnv" checked>
+            <span>環境反光</span></label>
+        </div>
+      </details>
+
+      <details>
+        <summary>ℹ️ 使用說明</summary>
+        <div class="sec">
+          <div class="hint" style="margin:0;line-height:1.75">
+            <b style="color:#cdcbe4">1.</b> 上傳透明 PNG 貼紙圖案。<br>
+            <b style="color:#cdcbe4">2.</b> 選一種工藝。<br>
+            <b style="color:#cdcbe4">3.</b> 拖動畫布或拉滑桿改變角度。<br>
+            <b style="color:#cdcbe4">4.</b> 匯出 PNG 或錄製 WebM 影片。
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>🎬 影片設定</summary>
+        <div class="sec">
+          <div class="field"><label>錄影長度</label>
+            <select id="videoDuration">
+              <option value="4">4 秒</option>
+              <option value="6">6 秒</option>
+              <option value="8" selected>8 秒</option>
+              <option value="12">12 秒</option>
+            </select>
+          </div>
+          <div class="field"><label>解像度</label>
+            <select id="videoScale">
+              <option value="0.5">50% — 快速（約 550×400）</option>
+              <option value="0.75" selected>75% — 推薦（約 825×600）</option>
+              <option value="1">100% — 最高（1100×800）</option>
+            </select>
+          </div>
+          <div class="field"><label>畫質</label>
+            <select id="videoQuality">
+              <option value="fast">快速（VP8 · 6 Mbps）</option>
+              <option value="balanced" selected>標準（VP9 · 12 Mbps）</option>
+              <option value="high">高畫質（VP9 · 22 Mbps）</option>
+            </select>
+          </div>
+          <div class="field"><label>幀率</label>
+            <select id="videoFps">
+              <option value="24">24 fps</option>
+              <option value="30" selected>30 fps</option>
+              <option value="60">60 fps（較慢）</option>
+            </select>
+          </div>
+          <div class="hint" id="videoEstimate">預估檔案大小：~5 MB</div>
+          <div class="hint warn" style="margin-top:10px">
+            WebM 唔支援透明通道。若果背景揀咗「透明」，影片會變成黑底。<br>
+            想要透明背景請用「⬇ PNG」匯出。
+          </div>
+          <div class="hint" style="margin-top:8px;color:#8a8898">
+            💡 若果錄影時好卡，可以降低解像度或幀率。
+          </div>
+        </div>
+      </details>
+
+    </aside>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const $ = id => document.getElementById(id);
+const stage = $('stage'), ctx = stage.getContext('2d');
+const statusEl = $('status');
+const fileInput = $('fileInput');
+const progressEl = $('progress'), progressBar = progressEl.querySelector('i');
+
+/* =========================================================
+   STATE
+   ========================================================= */
+const S = {
+  image: null,
+  imageName: '',
+  craft: 'rainbow-holo',
+  shimmer: 0.5,
+  density: 1.0,
+  dome3d: 1.2,
+  shellOn: true,
+  shellIntensity: 1.2,
+  shellHeight: 1.0,
+  angleX: 0,
+  angleY: 0,
+  autoSpeed: 80,
+  size: 0.75,
+  rot: 0,
+  borderOn: true,
+  borderW: 14,
+  borderAlpha: 1.0,
+  borderColor: '#ffffff',
+  shapeFollow: true,
+  shadow: 0.55,
+  bg: 'transparent',
+  customBgColor: '#3a2a5a',
+  glossEnv: true,
+  auto: false,
+  videoDuration: 8,
+  videoScale: 0.75,
+  videoQuality: 'balanced',
+  videoFps: 30,
+  dragging: false,
+  dragStart: { x: 0, y: 0 },
+  dragAngleStart: { x: 0, y: 0 }
+};
+
+/* =========================================================
+   CRAFTS
+   ========================================================= */
+const CRAFTS = {
+  'pvc-gloss': { name:'PVC亮光膜', en:'PVC Gloss Film',
+    swatch:'linear-gradient(135deg,#dcdcff,#7a7ab8)', pattern:null, spec:1.0 },
+  'matte': { name:'啞光膜', en:'Matte Film',
+    swatch:'linear-gradient(135deg,#c8c4bc,#6a6558)', pattern:null, spec:0.12 },
+  'clear': { name:'透明膠貼', en:'Clear Vinyl',
+    swatch:'linear-gradient(135deg,#f0f4ff,#b8d0e8)', pattern:null, spec:0.5,
+    clear:true, contentAlpha:0.65, borderAlphaDefault:0.75 },
+  'frosted': { name:'半透明磨砂', en:'Frosted Clear',
+    swatch:'linear-gradient(135deg,#e8e8f0,#a8a8b8)', pattern:null, spec:0.22,
+    clear:true, frosted:true, contentAlpha:0.55, borderAlphaDefault:0.3, frostHaze:true },
+  'rainbow-holo': { name:'普通鐳射', en:'Rainbow Holo',
+    swatch:'conic-gradient(from 0deg,#ff2e9a,#ffd166,#7dffb0,#00e5ff,#a26bff,#ff2e9a)',
+    pattern:'rainbow', spec:1.0 },
+  'star-holo': { name:'星星鐳射', en:'Star Holographic',
+    swatch:'conic-gradient(from 90deg,#ffd166,#ff6ba8,#a26bff,#00e5ff,#ffd166)',
+    pattern:'star', spec:1.0 },
+  'glitter': { name:'閃粉', en:'Glitter',
+    swatch:'radial-gradient(circle at 30% 30%,#fff,#ffd166 30%,#a26bff 70%,#0a0912)',
+    pattern:'glitter', spec:1.2 },
+  'sparkle-holo': { name:'幻彩閃點', en:'Sparkle Holo',
+    swatch:'radial-gradient(circle at 50% 50%,#00e5ff,#ff6ba8 50%,#7dffb0)',
+    pattern:'sparkle', spec:1.0 },
+  'metallic': { name:'金屬箔', en:'Metallic Foil',
+    swatch:'linear-gradient(90deg,#c8c8d0,#ffffff,#8888a0,#ffffff,#c8c8d0)',
+    pattern:'metal', spec:1.4 },
+  'matte-holo': { name:'磨砂鐳射', en:'Matte Holo',
+    swatch:'linear-gradient(135deg,#ffb0d0,#a8d0ff,#ffe0a8)',
+    pattern:'rainbow', spec:0.35, matte:true },
+  'pearl': { name:'珠光', en:'Pearlescent',
+    swatch:'linear-gradient(135deg,#ffe0f0,#d0e8ff,#f0d8b0)', pattern:'pearl', spec:0.7 },
+  'clear-holo': { name:'透明鐳射', en:'Clear Holo',
+    swatch:'conic-gradient(from 0deg,#ffb0d0aa,#d0e8ffaa,#ffe0a8aa,#ffb0d0aa)',
+    pattern:'rainbow', spec:0.7, clear:true, clearHolo:true, contentAlpha:0.65,
+    borderAlphaDefault:0.5 },
+  'dome-3d': { name:'滴膠3D貼紙', en:'3D Crystal Dome',
+    swatch:'radial-gradient(circle at 35% 30%,#ffffff,#b8d8f0 40%,#3a5a78)',
+    pattern:null, spec:0, dome:true }
+};
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+function mk(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
+function ensure(cv,w,h){ if (cv.width!==w||cv.height!==h){ cv.width=w; cv.height=h; } }
+function setStatus(msg, kind){
+  statusEl.textContent = msg;
+  statusEl.className = 'status' + (kind ? ' ' + kind : '');
+}
+function clamp(v,a,b){ return v<a?a:v>b?b:v; }
+function rnd(i){ return Math.abs((Math.sin(i*12.9898+78.233)*43758.5453)%1); }
+function roundRectPath(g, x, y, w, h, r){
+  r = Math.min(r, w/2, h/2);
+  g.beginPath();
+  g.moveTo(x+r, y);
+  g.arcTo(x+w, y, x+w, y+h, r);
+  g.arcTo(x+w, y+h, x, y+h, r);
+  g.arcTo(x, y+h, x, y, r);
+  g.arcTo(x, y, x+w, y, r);
+  g.closePath();
+}
+function hexToRgb(hex){
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return m ? {r:parseInt(m[1],16),g:parseInt(m[2],16),b:parseInt(m[3],16)} : {r:0,g:0,b:0};
+}
+
+/* =========================================================
+   DEMO
+   ========================================================= */
+function makeDemoImage(){
+  const w = 480, h = 480;
+  const c = mk(w,h);
+  const g = c.getContext('2d');
+  g.save(); g.translate(240, 240);
+  g.beginPath();
+  const outer = 210, inner = 90;
+  for (let i=0; i<10; i++){
+    const ang = -Math.PI/2 + i * Math.PI/5;
+    const r = i%2 === 0 ? outer : inner;
+    const x = Math.cos(ang) * r, y = Math.sin(ang) * r;
+    if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+  }
+  g.closePath();
+  const grad = g.createLinearGradient(-200, -200, 200, 200);
+  grad.addColorStop(0, '#ffd166'); grad.addColorStop(1, '#ff8a3a');
+  g.fillStyle = grad; g.fill();
+  g.lineWidth = 12; g.strokeStyle = '#1a1424'; g.stroke();
+  g.fillStyle = '#1a1424';
+  g.beginPath(); g.arc(-50, -20, 20, 0, Math.PI*2); g.fill();
+  g.beginPath(); g.arc(50, -20, 20, 0, Math.PI*2); g.fill();
+  g.beginPath(); g.arc(0, 20, 60, 0.15*Math.PI, 0.85*Math.PI);
+  g.lineWidth = 12; g.strokeStyle = '#1a1424'; g.stroke();
+  g.restore();
+  return c;
+}
+
+/* =========================================================
+   BUFFERS
+   ========================================================= */
+const stickerBuf = mk(1,1), stickerBufC = stickerBuf.getContext('2d');
+const holoBuf = mk(1,1), holoBufC = holoBuf.getContext('2d');
+const borderBuf = mk(1,1), borderBufC = borderBuf.getContext('2d');
+const tempBuf = mk(1,1), tempBufC = tempBuf.getContext('2d');
+const shellBuf = mk(1,1), shellBufC = shellBuf.getContext('2d');
+const shellShadowBuf = mk(1,1), shellShadowBufC = shellShadowBuf.getContext('2d');
+
+/* =========================================================
+   FISHEYE
+   ========================================================= */
+const _fisheyeCache = { key: null, canvas: null };
+function getFisheyeImage(img, strength){
+  const srcKey = (img.src || 'x') + '_' + (img.width||0) + 'x' + (img.height||0);
+  const key = srcKey + '_' + strength;
+  if (_fisheyeCache.key === key && _fisheyeCache.canvas) return _fisheyeCache.canvas;
+  const MAXDIM = 620;
+  const sw = img.width || img.naturalWidth || 1;
+  const sh = img.height || img.naturalHeight || 1;
+  const scale = Math.min(1, MAXDIM / Math.max(sw, sh));
+  const w = Math.max(2, Math.round(sw * scale));
+  const h = Math.max(2, Math.round(sh * scale));
+  const srcCv = mk(w, h);
+  const srcCtx = srcCv.getContext('2d');
+  srcCtx.drawImage(img, 0, 0, w, h);
+  const srcData = srcCtx.getImageData(0, 0, w, h);
+  const outCv = mk(w, h);
+  const outCtx = outCv.getContext('2d');
+  const outData = outCtx.createImageData(w, h);
+  const cx = w/2, cy = h/2;
+  const R = Math.min(cx, cy) * 1.15;
+  const src = srcData.data, dst = outData.data;
+  for (let y = 0; y < h; y++){
+    const dy = y - cy;
+    for (let x = 0; x < w; x++){
+      const dx = x - cx;
+      const r = Math.sqrt(dx*dx + dy*dy);
+      const nr = Math.min(1, r / R);
+      const srcR = r * (1 - strength * (1 - nr*nr));
+      const k = r > 0.0001 ? srcR / r : 1;
+      const sx = Math.round(cx + dx * k);
+      const sy = Math.round(cy + dy * k);
+      const di = (y * w + x) * 4;
+      if (sx >= 0 && sx < w && sy >= 0 && sy < h){
+        const si = (sy * w + sx) * 4;
+        dst[di] = src[si]; dst[di+1] = src[si+1];
+        dst[di+2] = src[si+2]; dst[di+3] = src[si+3];
+      }
+    }
+  }
+  outCtx.putImageData(outData, 0, 0);
+  _fisheyeCache.key = key;
+  _fisheyeCache.canvas = outCv;
+  return outCv;
+}
+
+/* =========================================================
+   DOME MAPS
+   ========================================================= */
+const _domeMapsCache = { key: null, bright: null, shadow: null, rim: null };
+function getDomeMaps(tiltX, tiltY){
+  const kx = Math.round(tiltX * 24) / 24;
+  const ky = Math.round(tiltY * 24) / 24;
+  const key = kx + '_' + ky;
+  if (_domeMapsCache.key === key) return _domeMapsCache;
+  const size = 200, radius = size/2 - 1, cx = size/2, cy = size/2;
+  const brightCan = mk(size, size);
+  const brightImg = brightCan.getContext('2d').createImageData(size, size);
+  const bd = brightImg.data;
+  const shadowCan = mk(size, size);
+  const shadowImg = shadowCan.getContext('2d').createImageData(size, size);
+  const sd = shadowImg.data;
+  const rimCan = mk(size, size);
+  const rimImg = rimCan.getContext('2d').createImageData(size, size);
+  const rd = rimImg.data;
+  const lx = -kx * 0.85, ly = -ky * 0.85, lz = 1.0;
+  const lLen = Math.hypot(lx, ly, lz);
+  const Lx = lx/lLen, Ly = ly/lLen, Lz = lz/lLen;
+  let Hx = Lx, Hy = Ly, Hz = Lz + 1;
+  const hLen = Math.hypot(Hx, Hy, Hz);
+  Hx /= hLen; Hy /= hLen; Hz /= hLen;
+  for (let y = 0; y < size; y++){
+    const py = (y - cy) / radius;
+    for (let x = 0; x < size; x++){
+      const px = (x - cx) / radius;
+      const r2 = px*px + py*py;
+      const i = (y * size + x) * 4;
+      if (r2 > 1){ bd[i+3]=0; sd[i+3]=0; rd[i+3]=0; continue; }
+      const Nz = Math.sqrt(1 - r2);
+      const Nx = px, Ny = py;
+      const NdotH = Math.max(0, Nx*Hx + Ny*Hy + Nz*Hz);
+      const spec = Math.pow(NdotH, 160);
+      const specBroad = Math.pow(NdotH, 10) * 0.20;
+      const NdotV = Nz;
+      const fresnel = Math.pow(1 - NdotV, 5);
+      const NdotL = Math.max(0, Nx*Lx + Ny*Ly + Nz*Lz);
+      const shade = NdotL;
+      const brightVal = Math.min(1, spec * 1.0 + specBroad + fresnel * 0.45);
+      bd[i]=255; bd[i+1]=255; bd[i+2]=255;
+      bd[i+3] = Math.round(brightVal * 255);
+      const shadowVal = Math.max(0, 1 - shade) * 0.72;
+      sd[i]=0; sd[i+1]=0; sd[i+2]=0;
+      sd[i+3] = Math.round(Math.min(0.85, shadowVal) * 255);
+      const rimPeak = Math.max(0, fresnel * 1.4 - 0.15);
+      rd[i]=255; rd[i+1]=255; rd[i+2]=255;
+      rd[i+3] = Math.round(Math.min(1, rimPeak) * 255);
+    }
+  }
+  brightCan.getContext('2d').putImageData(brightImg, 0, 0);
+  shadowCan.getContext('2d').putImageData(shadowImg, 0, 0);
+  rimCan.getContext('2d').putImageData(rimImg, 0, 0);
+  _domeMapsCache.key = key;
+  _domeMapsCache.bright = brightCan;
+  _domeMapsCache.shadow = shadowCan;
+  _domeMapsCache.rim = rimCan;
+  return _domeMapsCache;
+}
+
+/* =========================================================
+   HOLO PATTERN
+   ========================================================= */
+function renderHoloPattern(g, W, H, craftKey){
+  const craft = CRAFTS[craftKey];
+  const kind = craft.pattern;
+  if (!kind) return;
+  const hue = (S.angleX * 4 + S.angleY * 4) * S.shimmer;
+  const shift = S.angleX * 2.2 + S.angleY * 1.6;
+  const dens = S.density;
+  g.clearRect(0, 0, W, H);
+
+  if (kind === 'rainbow'){
+    const ang = Math.PI * 0.25 + (S.angleX * 0.0015);
+    const cx = W/2, cy = H/2, len = Math.hypot(W, H);
+    const x1 = cx + Math.cos(ang) * len * -1;
+    const y1 = cy + Math.sin(ang) * len * -1;
+    const x2 = cx + Math.cos(ang) * len;
+    const y2 = cy + Math.sin(ang) * len;
+    const grad = g.createLinearGradient(x1 + shift, y1 + shift, x2 + shift, y2 + shift);
+    const steps = 24;
+    for (let i = 0; i <= steps; i++){
+      const f = i / steps;
+      const hh = (f * 720 + hue) % 360;
+      const ll = 55 + Math.sin(f * Math.PI * 6) * 12;
+      grad.addColorStop(f, `hsl(${hh}, 100%, ${ll}%)`);
+    }
+    g.fillStyle = grad; g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = 'overlay';
+    const grad2 = g.createLinearGradient(0, shift, W, H + shift);
+    for (let i = 0; i <= 10; i++){
+      const f = i/10;
+      const hh = (f * 360 + hue + 60) % 360;
+      grad2.addColorStop(f, `hsla(${hh}, 90%, 60%, .55)`);
+    }
+    g.fillStyle = grad2; g.fillRect(0, 0, W, H);
+  }
+  else if (kind === 'star'){
+    const cell = 60 / dens;
+    g.save(); g.translate(shift * 0.8, shift * 0.6);
+    const grad = g.createLinearGradient(0, 0, W, H);
+    for (let i = 0; i <= 16; i++){
+      const f = i/16;
+      grad.addColorStop(f, `hsl(${(f*720 + hue) % 360}, 100%, 58%)`);
+    }
+    g.fillStyle = grad; g.fillRect(-100, -100, W + 200, H + 200);
+    g.globalCompositeOperation = 'overlay';
+    for (let y = -cell; y < H + cell; y += cell){
+      for (let x = -cell; x < W + cell; x += cell){
+        const px = x + (Math.round(y/cell)%2) * cell * 0.5;
+        const r1 = cell * 0.42, r2 = cell * 0.07;
+        g.beginPath();
+        for (let i = 0; i < 8; i++){
+          const ang = (i/8) * Math.PI * 2;
+          const r = (i % 2 === 0) ? r1 : r2;
+          const xx = px + Math.cos(ang)*r;
+          const yy = y + Math.sin(ang)*r;
+          if (i === 0) g.moveTo(xx, yy); else g.lineTo(xx, yy);
+        }
+        g.closePath();
+        g.fillStyle = 'rgba(255,255,255,.95)';
+        g.fill();
+      }
+    }
+    g.restore();
+  }
+  else if (kind === 'glitter'){
+    const count = Math.floor(1400 * dens);
+    g.save();
+    for (let i = 0; i < count; i++){
+      const seed = i * 7.31;
+      const px = rnd(seed) * W + shift * 0.5;
+      const py = rnd(seed + 50) * H + shift * 0.4;
+      const sz = 0.5 + rnd(seed + 100) * 2.4;
+      const hueG = (rnd(seed + 150) * 360 + hue) % 360;
+      const ph = rnd(seed + 200) * Math.PI * 2;
+      const tw = 0.5 + Math.sin(S.angleX * 0.18 + S.angleY * 0.14 + ph) * 0.5;
+      const alpha = 0.35 + tw * 0.65;
+      g.fillStyle = `hsla(${hueG}, 95%, ${60 + tw * 25}%, ${alpha})`;
+      g.beginPath();
+      g.arc(px, py, sz * (0.6 + tw * 0.5), 0, Math.PI * 2);
+      g.fill();
+      if (tw > 0.75 && sz > 1.4){
+        g.fillStyle = `rgba(255,255,255,${(tw - 0.75) * 3})`;
+        g.beginPath(); g.arc(px, py, sz * 0.55, 0, Math.PI * 2); g.fill();
+      }
+    }
+    g.restore();
+  }
+  else if (kind === 'sparkle'){
+    const cell = 14 / dens;
+    g.save();
+    for (let y = 0; y < H; y += cell){
+      for (let x = 0; x < W; x += cell){
+        const seed = (x * 31) + (y * 7);
+        const hueG = (rnd(seed) * 60 + ((x + y) * 0.5) + hue) % 360;
+        const ph = rnd(seed + 1) * Math.PI * 2;
+        const tw = 0.5 + Math.sin(S.angleX * 0.22 + S.angleY * 0.16 + ph) * 0.5;
+        const xOff = shift * 0.4 + (rnd(seed+2)-0.5)*3;
+        const yOff = shift * 0.3 + (rnd(seed+3)-0.5)*3;
+        g.fillStyle = `hsla(${hueG}, 100%, ${60 + tw * 20}%, ${0.35 + tw * 0.55})`;
+        g.beginPath();
+        g.arc(x + xOff, y + yOff, cell * 0.28, 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+    g.restore();
+  }
+  else if (kind === 'metal'){
+    const grad = g.createLinearGradient(0, 0, W * 0.4 + shift * 4, 0);
+    const stops = ['#8a8a96','#ffffff','#5a5a68','#e8e8f0','#7a7a86','#ffffff','#9a9aa4','#4a4a58'];
+    stops.forEach((c, i) => grad.addColorStop(i/(stops.length-1), c));
+    g.fillStyle = grad; g.fillRect(0, 0, W, H);
+    g.globalCompositeOperation = 'overlay';
+    const grad2 = g.createLinearGradient(0, shift * 3, 0, H * 0.7 + shift * 3);
+    grad2.addColorStop(0, 'rgba(0,0,0,.5)');
+    grad2.addColorStop(0.5, 'rgba(255,255,255,.85)');
+    grad2.addColorStop(1, 'rgba(0,0,0,.5)');
+    g.fillStyle = grad2; g.fillRect(0, 0, W, H);
+  }
+  else if (kind === 'pearl'){
+    g.save();
+    g.globalCompositeOperation = 'screen';
+    const blobs = 6;
+    for (let i = 0; i < blobs; i++){
+      const seed = i * 17;
+      const cx = (rnd(seed) * 0.6 + 0.2) * W + shift * (rnd(seed+30) - 0.5) * 2;
+      const cy = (rnd(seed+50) * 0.6 + 0.2) * H + shift * (rnd(seed+80) - 0.5) * 2;
+      const r = Math.min(W,H) * (0.35 + rnd(seed+100) * 0.3);
+      const grad = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+      const hueG = (i * 60 + hue) % 360;
+      grad.addColorStop(0, `hsla(${hueG}, 90%, 78%, .75)`);
+      grad.addColorStop(0.6, `hsla(${(hueG + 40) % 360}, 80%, 70%, .35)`);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = grad; g.fillRect(0, 0, W, H);
+    }
+    g.restore();
+  }
+}
+
+/* =========================================================
+   BACKGROUND — truly transparent when set
+   ========================================================= */
+function drawBackground(g, W, H){
+  const mode = S.bg;
+  g.clearRect(0, 0, W, H);
+
+  if (mode === 'transparent'){
+    // Do nothing — canvas stays transparent.
+    // The CSS checker on the canvas element shows through as a preview only.
+    return;
+  }
+  else if (mode === 'white'){ g.fillStyle = '#f5f5f5'; g.fillRect(0,0,W,H); }
+  else if (mode === 'gray'){ g.fillStyle = '#c8c8cc'; g.fillRect(0,0,W,H); }
+  else if (mode === 'dark'){ g.fillStyle = '#0e0e14'; g.fillRect(0,0,W,H); }
+  else if (mode === 'custom'){
+    g.fillStyle = S.customBgColor;
+    g.fillRect(0, 0, W, H);
+  }
+}
+
+function makeTintedSilhouette(img, color){
+  const key = color + '_' + (img.src || 'x') + '_' + img.width + 'x' + img.height;
+  if (!makeTintedSilhouette.cache) makeTintedSilhouette.cache = {};
+  if (makeTintedSilhouette.cache[key]) return makeTintedSilhouette.cache[key];
+  const c = mk(img.width, img.height);
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0);
+  g.globalCompositeOperation = 'source-in';
+  g.fillStyle = color;
+  g.fillRect(0, 0, img.width, img.height);
+  makeTintedSilhouette.cache[key] = c;
+  return c;
+}
+
+/* =========================================================
+   GLOSS
+   ========================================================= */
+function applyGloss(g, stickerX, stickerY, targetW, targetH, rot, tiltX, tiltY, strength, W, H){
+  const specX = 0.5 - tiltX * 0.4, specY = 0.5 - tiltY * 0.4;
+  const hx = stickerX + targetW * specX, hy = stickerY + targetH * specY;
+  const hRad = Math.max(targetW, targetH) * 0.85;
+  g.save();
+  g.globalCompositeOperation = 'source-atop';
+  const grad = g.createRadialGradient(hx, hy, 0, hx, hy, hRad);
+  grad.addColorStop(0, `rgba(255,255,255,${Math.min(0.95, strength * 1.1)})`);
+  grad.addColorStop(0.35, `rgba(255,255,255,${strength * 0.4})`);
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad; g.fillRect(0, 0, W, H);
+  g.restore();
+  g.save();
+  g.globalCompositeOperation = 'source-atop';
+  g.translate(hx, hy); g.rotate(rot);
+  const streakLen = Math.max(targetW, targetH) * 1.2;
+  const sGrad = g.createLinearGradient(-streakLen, 0, streakLen, 0);
+  sGrad.addColorStop(0, 'rgba(255,255,255,0)');
+  sGrad.addColorStop(0.5, `rgba(255,255,255,${strength * 0.35})`);
+  sGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = sGrad;
+  g.fillRect(-streakLen, -8, streakLen * 2, 16);
+  g.restore();
+}
+
+/* =========================================================
+   DOME
+   ========================================================= */
+function applyDome3D(g, stickerX, stickerY, targetW, targetH, tiltX, tiltY, W, H){
+  if (!S.glossEnv) return;
+  const intensity = S.dome3d;
+  if (intensity <= 0.01) return;
+  const maps = getDomeMaps(tiltX, tiltY);
+  const domeSize = Math.max(targetW, targetH) * 1.05;
+  const dx = stickerX + targetW/2 - domeSize/2;
+  const dy = stickerY + targetH/2 - domeSize/2;
+
+  g.save(); g.globalCompositeOperation = 'source-atop';
+  g.globalAlpha = Math.min(1, intensity * 0.9);
+  g.drawImage(maps.shadow, dx, dy, domeSize, domeSize);
+  g.restore();
+
+  g.save(); g.globalCompositeOperation = 'source-atop';
+  g.globalAlpha = Math.min(1, intensity * 0.95);
+  g.drawImage(maps.bright, dx, dy, domeSize, domeSize);
+  g.restore();
+
+  g.save(); g.globalCompositeOperation = 'source-atop';
+  g.globalAlpha = Math.min(1, intensity * 0.85);
+  g.drawImage(maps.rim, dx, dy, domeSize, domeSize);
+  g.restore();
+
+  const lx = 0.5 - tiltX * 0.6, ly = 0.5 - tiltY * 0.6;
+  const hx = stickerX + targetW * lx, hy = stickerY + targetH * ly;
+  const cx = stickerX + targetW/2, cy = stickerY + targetH/2;
+  const tx = hx + (cx - hx) * 0.14, ty = hy + (cy - hy) * 0.14;
+
+  g.save(); g.globalCompositeOperation = 'source-atop';
+  const tinyRad = Math.max(targetW, targetH) * 0.085;
+  const tinyGrad = g.createRadialGradient(tx, ty, 0, tx, ty, tinyRad);
+  tinyGrad.addColorStop(0, `rgba(255,255,255,${Math.min(1, 0.95 * intensity)})`);
+  tinyGrad.addColorStop(0.3, `rgba(255,255,255,${Math.min(1, 0.45 * intensity)})`);
+  tinyGrad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = tinyGrad; g.fillRect(0, 0, W, H);
+  g.restore();
+}
+
+/* =========================================================
+   GLASS RELIEF SHELL
+   ========================================================= */
+function applyReliefShell(g, stickerX, stickerY, targetW, targetH, tiltX, tiltY, W, H){
+  if (!S.shellOn) return;
+  const intensity = S.shellIntensity;
+  if (intensity <= 0.01) return;
+  const img = getImage();
+  const maxDim = Math.max(targetW, targetH);
+  const whiteSil = makeTintedSilhouette(img, '#ffffff');
+
+  const tiltMag = Math.min(1, Math.hypot(tiltX, tiltY));
+  let ndx = tiltX, ndy = tiltY;
+  let nLen = Math.hypot(ndx, ndy);
+  if (nLen < 0.001){ ndx = 1; ndy = 0; nLen = 1; }
+  ndx /= nLen; ndy /= nLen;
+
+  const wallBase  = maxDim * 0.020 * intensity;
+  const wallHeight= maxDim * 0.022 * S.shellHeight * intensity;
+  const wall = wallBase + wallHeight;
+  const contrast = 0.50 + tiltMag * 0.55;
+  const I = intensity;
+
+  ensure(shellBuf, W, H);
+  shellBufC.setTransform(1,0,0,1,0,0); shellBufC.globalAlpha = 1;
+  shellBufC.globalCompositeOperation = 'source-over';
+  shellBufC.clearRect(0, 0, W, H);
+
+  const steps = 64;
+  for (let i = 0; i < steps; i++){
+    const a = (i / steps) * Math.PI * 2;
+    shellBufC.drawImage(whiteSil,
+      stickerX + Math.cos(a) * wall,
+      stickerY + Math.sin(a) * wall,
+      targetW, targetH);
+  }
+  shellBufC.globalCompositeOperation = 'destination-out';
+  shellBufC.drawImage(whiteSil, stickerX, stickerY, targetW, targetH);
+  shellBufC.globalCompositeOperation = 'source-over';
+
+  const dcx = stickerX + targetW/2, dcy = stickerY + targetH/2;
+  const gLen = maxDim * 0.85;
+  const gx0 = dcx - ndx * gLen, gy0 = dcy - ndy * gLen;
+  const gx1 = dcx + ndx * gLen, gy1 = dcy + ndy * gLen;
+
+  shellBufC.globalCompositeOperation = 'source-in';
+  const grad = shellBufC.createLinearGradient(gx0, gy0, gx1, gy1);
+  grad.addColorStop(0,    `rgba(255,255,255,${Math.min(1, 1.00 * I * contrast)})`);
+  grad.addColorStop(0.28, `rgba(230,242,255,${Math.min(1, 0.88 * I * contrast)})`);
+  grad.addColorStop(0.55, `rgba(140,165,205,${Math.min(1, 0.65 * I * contrast)})`);
+  grad.addColorStop(0.80, `rgba(45,65,105,${Math.min(1, 0.82 * I * contrast)})`);
+  grad.addColorStop(1,    `rgba(8,12,26,${Math.min(1, 0.98 * I * contrast)})`);
+  shellBufC.fillStyle = grad; shellBufC.fillRect(0, 0, W, H);
+  shellBufC.globalCompositeOperation = 'source-over';
+
+  const shWall = wall * (0.45 + 0.55 * tiltMag);
+  const shOffX = -ndx * shWall, shOffY = -ndy * shWall;
+
+  ensure(shellShadowBuf, W, H);
+  shellShadowBufC.setTransform(1,0,0,1,0,0);
+  shellShadowBufC.globalAlpha = 1;
+  shellShadowBufC.globalCompositeOperation = 'source-over';
+  shellShadowBufC.clearRect(0, 0, W, H);
+  shellShadowBufC.drawImage(whiteSil, stickerX, stickerY, targetW, targetH);
+  shellShadowBufC.globalCompositeOperation = 'destination-out';
+  shellShadowBufC.drawImage(whiteSil, stickerX + shOffX, stickerY + shOffY, targetW, targetH);
+  shellShadowBufC.globalCompositeOperation = 'source-over';
+
+  shellShadowBufC.globalCompositeOperation = 'source-in';
+  const shGrad = shellShadowBufC.createLinearGradient(gx0, gy0, gx1, gy1);
+  shGrad.addColorStop(0,    'rgba(0,0,0,0)');
+  shGrad.addColorStop(0.40, 'rgba(0,0,0,0)');
+  shGrad.addColorStop(0.65, `rgba(0,0,0,${Math.min(1, 0.28 * I * contrast)})`);
+  shGrad.addColorStop(0.85, `rgba(0,0,0,${Math.min(1, 0.62 * I * contrast)})`);
+  shGrad.addColorStop(1,    `rgba(0,0,0,${Math.min(1, 0.85 * I * contrast)})`);
+  shellShadowBufC.fillStyle = shGrad; shellShadowBufC.fillRect(0, 0, W, H);
+  shellShadowBufC.globalCompositeOperation = 'source-over';
+
+  g.save(); g.globalCompositeOperation = 'source-over';
+  g.filter = 'blur(3.5px)';
+  g.drawImage(shellShadowBuf, 0, 0);
+  g.restore();
+
+  g.save(); g.globalCompositeOperation = 'source-over';
+  g.drawImage(shellBuf, 0, 0);
+  g.restore();
+
+  ensure(shellBuf, W, H);
+  shellBufC.setTransform(1,0,0,1,0,0); shellBufC.globalAlpha = 1;
+  shellBufC.globalCompositeOperation = 'source-over';
+  shellBufC.clearRect(0, 0, W, H);
+  const rimExtra = Math.max(1.2, maxDim * 0.004);
+  for (let i = 0; i < steps; i++){
+    const a = (i / steps) * Math.PI * 2;
+    shellBufC.drawImage(whiteSil,
+      stickerX + Math.cos(a) * (wall + rimExtra),
+      stickerY + Math.sin(a) * (wall + rimExtra),
+      targetW, targetH);
+  }
+  shellBufC.globalCompositeOperation = 'destination-out';
+  for (let i = 0; i < steps; i++){
+    const a = (i / steps) * Math.PI * 2;
+    shellBufC.drawImage(whiteSil,
+      stickerX + Math.cos(a) * wall,
+      stickerY + Math.sin(a) * wall,
+      targetW, targetH);
+  }
+  shellBufC.drawImage(whiteSil, stickerX, stickerY, targetW, targetH);
+  shellBufC.globalCompositeOperation = 'source-over';
+  shellBufC.globalCompositeOperation = 'source-in';
+  const rimGrad = shellBufC.createLinearGradient(gx0, gy0, gx1, gy1);
+  rimGrad.addColorStop(0,   `rgba(255,255,255,${Math.min(1, 1.00 * I * contrast)})`);
+  rimGrad.addColorStop(0.35,`rgba(255,255,255,${Math.min(1, 0.50 * I * contrast)})`);
+  rimGrad.addColorStop(0.65,'rgba(255,255,255,0)');
+  rimGrad.addColorStop(1,   'rgba(255,255,255,0)');
+  shellBufC.fillStyle = rimGrad; shellBufC.fillRect(0, 0, W, H);
+  shellBufC.globalCompositeOperation = 'source-over';
+
+  g.save();
+  g.globalCompositeOperation = 'lighter';
+  g.globalAlpha = Math.min(1, 0.90 * I);
+  g.drawImage(shellBuf, 0, 0);
+  g.restore();
+}
+
+/* =========================================================
+   STICKER
+   ========================================================= */
+let _demoImage = null;
+function getImage(){
+  if (S.image) return S.image;
+  if (!_demoImage) _demoImage = makeDemoImage();
+  return _demoImage;
+}
+
+function drawStickerFrame(W, H){
+  const img = getImage();
+  const craft = CRAFTS[S.craft];
+
+  const maxSide = Math.min(W, H) * 0.85;
+  const aspect = img.width / img.height;
+  let targetW, targetH;
+  if (aspect >= 1){ targetW = maxSide; targetH = targetW / aspect; }
+  else { targetH = maxSide; targetW = targetH * aspect; }
+  targetW *= S.size; targetH *= S.size;
+
+  const cx = W/2, cy = H/2;
+  const stickerX = cx - targetW/2, stickerY = cy - targetH/2;
+  const tiltX = S.angleX / 60, tiltY = S.angleY / 60;
+
+  ensure(stickerBuf, W, H);
+  stickerBufC.setTransform(1,0,0,1,0,0); stickerBufC.globalAlpha = 1;
+  stickerBufC.globalCompositeOperation = 'source-over';
+  stickerBufC.clearRect(0,0,W,H);
+
+  const sx = 1 - Math.abs(tiltY) * 0.10;
+  const sy = 1 - Math.abs(tiltX) * 0.10;
+  const skewX = tiltY * 0.06, skewY = -tiltX * 0.04;
+  const rot = S.rot * Math.PI/180;
+
+  stickerBufC.save();
+  stickerBufC.translate(cx, cy);
+  stickerBufC.rotate(rot);
+  stickerBufC.transform(sx, skewY, skewX, sy, 0, 0);
+  stickerBufC.translate(-cx, -cy);
+
+  const drawImg = img;
+  const bw = S.borderOn ? S.borderW : 0;
+  const borderAlpha = clamp(S.borderAlpha, 0, 1);
+
+  if (bw > 0 && borderAlpha > 0.01){
+    if (borderAlpha < 0.99){
+      ensure(borderBuf, W, H);
+      borderBufC.setTransform(1,0,0,1,0,0); borderBufC.globalAlpha = 1;
+      borderBufC.globalCompositeOperation = 'source-over';
+      borderBufC.clearRect(0,0,W,H);
+      const tintedSil = makeTintedSilhouette(drawImg, S.borderColor);
+      if (S.shapeFollow){
+        const steps = 56;
+        for (let i = 0; i < steps; i++){
+          const a = (i/steps) * Math.PI * 2;
+          borderBufC.drawImage(tintedSil,
+            stickerX + Math.cos(a) * bw, stickerY + Math.sin(a) * bw,
+            targetW, targetH);
+        }
+        for (let i = 0; i < steps; i++){
+          const a = (i/steps) * Math.PI * 2 + Math.PI/steps;
+          borderBufC.drawImage(tintedSil,
+            stickerX + Math.cos(a) * bw * 0.5, stickerY + Math.sin(a) * bw * 0.5,
+            targetW, targetH);
+        }
+      } else {
+        roundRectPath(borderBufC, stickerX, stickerY, targetW, targetH, Math.min(targetW,targetH)*0.14);
+        borderBufC.fillStyle = S.borderColor; borderBufC.fill();
+      }
+      stickerBufC.globalAlpha = borderAlpha;
+      stickerBufC.drawImage(borderBuf, 0, 0);
+      stickerBufC.globalAlpha = 1;
+    } else {
+      const tintedSil = makeTintedSilhouette(drawImg, S.borderColor);
+      if (S.shapeFollow){
+        const steps = 56;
+        for (let i = 0; i < steps; i++){
+          const a = (i/steps) * Math.PI * 2;
+          stickerBufC.drawImage(tintedSil,
+            stickerX + Math.cos(a) * bw, stickerY + Math.sin(a) * bw,
+            targetW, targetH);
+        }
+        for (let i = 0; i < steps; i++){
+          const a = (i/steps) * Math.PI * 2 + Math.PI/steps;
+          stickerBufC.drawImage(tintedSil,
+            stickerX + Math.cos(a) * bw * 0.5, stickerY + Math.sin(a) * bw * 0.5,
+            targetW, targetH);
+        }
+      } else {
+        roundRectPath(stickerBufC, stickerX, stickerY, targetW, targetH, Math.min(targetW,targetH)*0.14);
+        stickerBufC.fillStyle = S.borderColor; stickerBufC.fill();
+      }
+    }
+  }
+
+  const contentAlpha = craft.clear ? (craft.contentAlpha || 0.85) : 1;
+  stickerBufC.globalAlpha = contentAlpha;
+  let contentImg = drawImg;
+  if (craft.dome) contentImg = getFisheyeImage(drawImg, 0.11);
+
+  if (!S.shapeFollow){
+    stickerBufC.save();
+    roundRectPath(stickerBufC, stickerX, stickerY, targetW, targetH, Math.min(targetW,targetH)*0.14);
+    stickerBufC.clip();
+    stickerBufC.drawImage(contentImg, stickerX, stickerY, targetW, targetH);
+    if (craft.dome){
+      stickerBufC.globalCompositeOperation = 'destination-in';
+      stickerBufC.drawImage(drawImg, stickerX, stickerY, targetW, targetH);
+      stickerBufC.globalCompositeOperation = 'source-over';
+    }
+    stickerBufC.restore();
+  } else {
+    if (craft.dome){
+      ensure(tempBuf, W, H);
+      tempBufC.setTransform(1,0,0,1,0,0); tempBufC.globalAlpha = 1;
+      tempBufC.globalCompositeOperation = 'source-over';
+      tempBufC.clearRect(0,0,W,H);
+      tempBufC.drawImage(contentImg, stickerX, stickerY, targetW, targetH);
+      tempBufC.globalCompositeOperation = 'destination-in';
+      tempBufC.drawImage(drawImg, stickerX, stickerY, targetW, targetH);
+      tempBufC.globalCompositeOperation = 'source-over';
+      stickerBufC.drawImage(tempBuf, 0, 0);
+    } else {
+      stickerBufC.drawImage(contentImg, stickerX, stickerY, targetW, targetH);
+    }
+  }
+  stickerBufC.globalAlpha = 1;
+
+  if (craft.frostHaze){
+    stickerBufC.save();
+    stickerBufC.globalCompositeOperation = 'source-atop';
+    stickerBufC.fillStyle = 'rgba(255,255,255,0.30)';
+    stickerBufC.fillRect(0, 0, W, H);
+    stickerBufC.globalAlpha = 0.14;
+    for (let i = 0; i < 900; i++){
+      const px = rnd(i) * W, py = rnd(i+50) * H;
+      stickerBufC.fillStyle = rnd(i+100) < 0.5 ? '#fff' : '#909098';
+      stickerBufC.fillRect(px, py, 1, 1);
+    }
+    stickerBufC.globalAlpha = 1;
+    stickerBufC.restore();
+  }
+
+  if (craft.clear && !craft.dome){
+    stickerBufC.save();
+    stickerBufC.globalCompositeOperation = 'source-atop';
+    const cRad = Math.max(targetW, targetH) * 0.55;
+    const cx2 = stickerX + targetW/2, cy2 = stickerY + targetH/2;
+    const rGrad = stickerBufC.createRadialGradient(cx2, cy2, cRad*0.85, cx2, cy2, cRad*1.05);
+    rGrad.addColorStop(0, 'rgba(255,255,255,0)');
+    rGrad.addColorStop(0.6, 'rgba(255,255,255,.25)');
+    rGrad.addColorStop(1, 'rgba(255,255,255,0)');
+    stickerBufC.fillStyle = rGrad; stickerBufC.fillRect(0, 0, W, H);
+    stickerBufC.restore();
+  }
+
+  if (craft.pattern){
+    ensure(holoBuf, W, H);
+    holoBufC.setTransform(1,0,0,1,0,0);
+    holoBufC.globalCompositeOperation = 'source-over';
+    holoBufC.globalAlpha = 1;
+    holoBufC.clearRect(0,0,W,H);
+    renderHoloPattern(holoBufC, W, H, S.craft);
+    holoBufC.globalCompositeOperation = 'destination-in';
+    if (!S.shapeFollow){
+      roundRectPath(holoBufC, stickerX, stickerY, targetW, targetH, Math.min(targetW,targetH)*0.14);
+      holoBufC.fill();
+    } else {
+      holoBufC.drawImage(drawImg, stickerX, stickerY, targetW, targetH);
+    }
+    holoBufC.globalCompositeOperation = 'source-over';
+    const holoStrength = craft.clearHolo ? 0.55 : 1;
+    stickerBufC.save();
+    stickerBufC.globalCompositeOperation = craft.matte ? 'overlay' : 'screen';
+    stickerBufC.globalAlpha = Math.min(1, S.shimmer * (craft.matte ? 0.75 : 0.85) * holoStrength);
+    stickerBufC.drawImage(holoBuf, 0, 0);
+    stickerBufC.restore();
+    stickerBufC.save();
+    stickerBufC.globalCompositeOperation = 'overlay';
+    stickerBufC.globalAlpha = Math.min(1, S.shimmer * 0.55 * holoStrength);
+    stickerBufC.drawImage(holoBuf, 0, 0);
+    stickerBufC.restore();
+  }
+
+  if (craft.dome){
+    applyDome3D(stickerBufC, stickerX, stickerY, targetW, targetH, tiltX, tiltY, W, H);
+    applyReliefShell(stickerBufC, stickerX, stickerY, targetW, targetH, tiltX, tiltY, W, H);
+  } else if (craft.spec > 0 && S.glossEnv){
+    applyGloss(stickerBufC, stickerX, stickerY, targetW, targetH, rot, tiltX, tiltY, craft.spec * 0.55, W, H);
+  }
+
+  stickerBufC.restore();
+  return { stickerX, stickerY, targetW, targetH, buf: stickerBuf };
+}
+
+/* =========================================================
+   MAIN RENDER
+   ========================================================= */
+function render(){
+  const W = stage.width, H = stage.height;
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.filter = 'none';
+  ctx.clearRect(0, 0, W, H);
+  drawBackground(ctx, W, H);
+  const info = drawStickerFrame(W, H);
+
+  if (S.shadow > 0.02){
+    const tiltX = S.angleX / 60, tiltY = S.angleY / 60;
+    const sx = 1 - Math.abs(tiltY) * 0.10;
+    const sy = 1 - Math.abs(tiltX) * 0.10;
+    const skewX = tiltY * 0.06, skewY = -tiltX * 0.04;
+    const rot = S.rot * Math.PI/180;
+    const cx = W/2, cy = H/2;
+    const craft = CRAFTS[S.craft];
+    const hasShell = craft.dome && S.shellOn;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.filter = `blur(${10 + S.shadow * 30}px)`;
+    ctx.globalAlpha = S.shadow * (hasShell ? 0.95 : 0.75);
+    ctx.translate(cx, cy);
+    ctx.rotate(rot);
+    ctx.transform(sx, skewY, skewX, sy, 0, 0);
+    ctx.translate(-cx, -cy);
+    const offMul = hasShell ? 2.4 : 1;
+    ctx.translate(S.shadow * 12 * offMul + tiltY * 20, S.shadow * 20 * offMul + tiltX * 20);
+    ctx.drawImage(info.buf, 0, 0);
+    ctx.restore();
+  }
+  ctx.drawImage(info.buf, 0, 0);
+}
+
+/* =========================================================
+   RECORDING CANVAS
+   ========================================================= */
+let recordCanvas = null, recordCtx = null;
+let recording = false;
+
+/* =========================================================
+   LOOP
+   ========================================================= */
+let last = performance.now();
+let autoAngle = 0;
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  if (S.auto){
+    autoAngle += dt * S.autoSpeed;
+    S.angleX = Math.sin(autoAngle * Math.PI/180) * 55;
+    S.angleY = Math.cos(autoAngle * 0.7 * Math.PI/180) * 35;
+    $('angleX').value = Math.round(S.angleX);
+    $('angleY').value = Math.round(S.angleY);
+    $('angleXVal').textContent = Math.round(S.angleX) + '°';
+    $('angleYVal').textContent = Math.round(S.angleY) + '°';
+    $('angleInfo').textContent = `X ${Math.round(S.angleX)}°  ·  Y ${Math.round(S.angleY)}°`;
+  }
+  render();
+  if (recording && recordCtx && recordCanvas){
+    recordCtx.drawImage(stage, 0, 0, recordCanvas.width, recordCanvas.height);
+  }
+}
+requestAnimationFrame(loop);
+
+/* =========================================================
+   CRAFT GRID
+   ========================================================= */
+function setBorderAlphaForCraft(craftKey){
+  const craft = CRAFTS[craftKey];
+  const def = craft.borderAlphaDefault;
+  if (def !== undefined){
+    S.borderAlpha = def;
+    $('borderAlpha').value = def;
+    $('borderAlphaVal').textContent = def.toFixed(2);
+  } else {
+    S.borderAlpha = 1;
+    $('borderAlpha').value = 1;
+    $('borderAlphaVal').textContent = '1.00';
+  }
+  const domeField = $('dome3dField');
+  const glassField = $('glassShellField');
+  if (craft.dome){
+    domeField.style.display = 'block';
+    glassField.style.display = 'block';
+  } else {
+    domeField.style.display = 'none';
+    glassField.style.display = 'none';
+  }
+}
+
+function buildCraftGrid(){
+  const grid = $('craftGrid');
+  grid.innerHTML = '';
+  const entries = Object.entries(CRAFTS);
+  entries.forEach(([key, craft]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'craft-btn' + (key === S.craft ? ' active' : '');
+    b.dataset.craft = key;
+    const sw = document.createElement('span');
+    sw.className = 'swatch'; sw.style.background = craft.swatch;
+    b.appendChild(sw);
+    const nm = document.createElement('span');
+    nm.className = 'name'; nm.textContent = craft.name;
+    b.appendChild(nm);
+    const en = document.createElement('span');
+    en.className = 'en'; en.textContent = craft.en;
+    b.appendChild(en);
+    b.addEventListener('click', () => {
+      S.craft = key;
+      document.querySelectorAll('.craft-btn').forEach(x => {
+        x.classList.toggle('active', x.dataset.craft === key);
+      });
+      setBorderAlphaForCraft(key);
+      setStatus(`已切換到「${craft.name}」`, 'ok');
+    });
+    grid.appendChild(b);
+  });
+  $('tagCount').textContent = entries.length + ' 種工藝';
+}
+
+/* =========================================================
+   WIRING
+   ========================================================= */
+function bindSlider(id, valId, fmt, onChange){
+  const el = $(id), out = $(valId);
+  const upd = () => {
+    if (out) out.textContent = fmt ? fmt(el.value) : el.value;
+    if (onChange) onChange(parseFloat(el.value));
+  };
+  el.addEventListener('input', upd);
+  upd();
+}
+function bindToggle(id, onChange){
+  const el = $(id);
+  const upd = () => { if (onChange) onChange(el.checked); };
+  el.addEventListener('change', upd);
+  upd();
+}
+
+$('uploadBtn').addEventListener('click', () => { fileInput.value=''; fileInput.click(); });
+$('uploadBtn2').addEventListener('click', () => { fileInput.value=''; fileInput.click(); });
+$('thumb').addEventListener('click', () => { fileInput.value=''; fileInput.click(); });
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  if (!f.type.startsWith('image/')){
+    setStatus('請上傳圖片檔案 (PNG / JPG)', 'err');
+    return;
+  }
+  const r = new FileReader();
+  r.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      S.image = img; S.imageName = f.name;
+      _fisheyeCache.key = null;
+      makeTintedSilhouette.cache = {};
+      updateThumb();
+      setStatus(`已載入「${f.name}」 · ${img.width}×${img.height}`, 'ok');
+    };
+    img.onerror = () => setStatus('圖片讀取失敗', 'err');
+    img.src = ev.target.result;
+  };
+  r.readAsDataURL(f);
+  e.target.value = '';
+});
+$('demoBtn').addEventListener('click', () => {
+  S.image = null; S.imageName = '';
+  _demoImage = makeDemoImage();
+  _fisheyeCache.key = null;
+  makeTintedSilhouette.cache = {};
+  updateThumb();
+  setStatus('已載入範例星形貼紙', 'ok');
+});
+function updateThumb(){
+  const el = $('thumb');
+  const img = getImage();
+  el.style.backgroundImage = `url(${img.toDataURL ? img.toDataURL() : img.src})`;
+  el.style.backgroundSize = 'contain';
+  el.textContent = '';
+}
+
+bindSlider('dome3d', 'dome3dVal', v => parseFloat(v).toFixed(2), v => S.dome3d = v);
+bindSlider('shimmer', 'shimmerVal', v => parseFloat(v).toFixed(2), v => S.shimmer = v);
+bindSlider('density', 'densityVal', v => parseFloat(v).toFixed(2), v => S.density = v);
+bindToggle('shellOn', v => S.shellOn = v);
+bindSlider('shellIntensity', 'shellIntensityVal', v => parseFloat(v).toFixed(2), v => S.shellIntensity = v);
+bindSlider('shellHeight', 'shellHeightVal', v => parseFloat(v).toFixed(2), v => S.shellHeight = v);
+
+bindSlider('angleX', 'angleXVal', v => Math.round(v)+'°', v => {
+  S.angleX = v;
+  $('angleInfo').textContent = `X ${Math.round(S.angleX)}°  ·  Y ${Math.round(S.angleY)}°`;
+});
+bindSlider('angleY', 'angleYVal', v => Math.round(v)+'°', v => {
+  S.angleY = v;
+  $('angleInfo').textContent = `X ${Math.round(S.angleX)}°  ·  Y ${Math.round(S.angleY)}°`;
+});
+bindSlider('autoSpeed', 'autoSpeedVal', v => Math.round(v)+'°/s', v => S.autoSpeed = v);
+
+$('autoBtn').addEventListener('click', () => {
+  S.auto = !S.auto;
+  $('autoBtn').textContent = S.auto ? '⏸ 停止旋轉' : '▶ 自動旋轉';
+  $('autoBtn').classList.toggle('pri', S.auto);
+});
+$('angleResetBtn').addEventListener('click', () => {
+  S.angleX = 0; S.angleY = 0;
+  $('angleX').value = 0; $('angleY').value = 0;
+  $('angleXVal').textContent = '0°'; $('angleYVal').textContent = '0°';
+  $('angleInfo').textContent = 'X 0°  ·  Y 0°';
+});
+
+bindSlider('size', 'sizeVal', v => Math.round(v*100)+'%', v => S.size = v);
+bindSlider('rot', 'rotVal', v => Math.round(v)+'°', v => S.rot = v);
+bindToggle('borderOn', v => S.borderOn = v);
+bindSlider('borderW', 'borderVal', v => Math.round(v)+' px', v => S.borderW = v);
+bindSlider('borderAlpha', 'borderAlphaVal', v => parseFloat(v).toFixed(2), v => S.borderAlpha = v);
+$('borderColor').addEventListener('input', e => {
+  S.borderColor = e.target.value;
+  makeTintedSilhouette.cache = {};
+});
+bindToggle('shapeFollow', v => S.shapeFollow = v);
+bindSlider('shadow', 'shadowVal', v => parseFloat(v).toFixed(2), v => S.shadow = v);
+
+// Background
+const bgSel = $('bg');
+const customBgField = $('customBgField');
+const customBgColor = $('customBgColor');
+function updateBgUI(){
+  S.bg = bgSel.value;
+  customBgField.style.display = (S.bg === 'custom') ? 'block' : 'none';
+}
+bgSel.addEventListener('change', updateBgUI);
+customBgColor.addEventListener('input', e => { S.customBgColor = e.target.value; });
+updateBgUI();
+
+bindToggle('glossEnv', v => S.glossEnv = v);
+
+// Video settings
+const videoDurationSel = $('videoDuration');
+const videoScaleSel = $('videoScale');
+const videoQualitySel = $('videoQuality');
+const videoFpsSel = $('videoFps');
+function updateVideoEstimate(){
+  S.videoDuration = parseFloat(videoDurationSel.value);
+  S.videoScale = parseFloat(videoScaleSel.value);
+  S.videoQuality = videoQualitySel.value;
+  S.videoFps = parseFloat(videoFpsSel.value);
+  const w = stage.width * S.videoScale;
+  const h = stage.height * S.videoScale;
+  const baseMbps = S.videoQuality === 'high' ? 22 : S.videoQuality === 'balanced' ? 12 : 6;
+  const scaleFactor = (w * h) / (1100 * 800);
+  const mbps = Math.max(1.5, baseMbps * Math.max(0.3, scaleFactor));
+  const sizeMB = (mbps * S.videoDuration) / 8;
+  $('videoEstimate').textContent = `預估：${Math.round(w)}×${Math.round(h)} · ${mbps.toFixed(1)} Mbps · 約 ${sizeMB.toFixed(1)} MB`;
+}
+videoDurationSel.addEventListener('change', updateVideoEstimate);
+videoScaleSel.addEventListener('change', updateVideoEstimate);
+videoQualitySel.addEventListener('change', updateVideoEstimate);
+videoFpsSel.addEventListener('change', updateVideoEstimate);
+updateVideoEstimate();
+
+$('resetBtn').addEventListener('click', () => {
+  if (!confirm('重設所有設定？')) return;
+  S.craft = 'rainbow-holo';
+  S.shimmer = 0.5; S.density = 1; S.dome3d = 1.2;
+  S.shellOn = true; S.shellIntensity = 1.2; S.shellHeight = 1;
+  S.angleX = 0; S.angleY = 0; S.autoSpeed = 80;
+  S.size = 0.75; S.rot = 0;
+  S.borderOn = true; S.borderW = 14; S.borderAlpha = 1; S.borderColor = '#ffffff';
+  S.shapeFollow = true;
+  S.shadow = 0.55; S.bg = 'transparent'; S.customBgColor = '#3a2a5a';
+  S.glossEnv = true; S.auto = false;
+  document.querySelectorAll('.craft-btn').forEach(x => {
+    x.classList.toggle('active', x.dataset.craft === S.craft);
+  });
+  $('dome3d').value = 1.2; $('dome3dVal').textContent = '1.20';
+  $('shellOn').checked = true;
+  $('shellIntensity').value = 1.2; $('shellIntensityVal').textContent = '1.20';
+  $('shellHeight').value = 1; $('shellHeightVal').textContent = '1.00';
+  $('shimmer').value = 0.5; $('shimmerVal').textContent = '0.50';
+  $('density').value = 1; $('densityVal').textContent = '1.00';
+  $('angleX').value = 0; $('angleY').value = 0;
+  $('angleXVal').textContent = '0°'; $('angleYVal').textContent = '0°';
+  $('angleInfo').textContent = 'X 0°  ·  Y 0°';
+  $('autoSpeed').value = 80; $('autoSpeedVal').textContent = '80°/s';
+  $('size').value = 0.75; $('sizeVal').textContent = '75%';
+  $('rot').value = 0; $('rotVal').textContent = '0°';
+  $('borderOn').checked = true;
+  $('borderW').value = 14; $('borderVal').textContent = '14 px';
+  $('borderAlpha').value = 1; $('borderAlphaVal').textContent = '1.00';
+  $('borderColor').value = '#ffffff';
+  $('shapeFollow').checked = true;
+  $('shadow').value = 0.55; $('shadowVal').textContent = '0.55';
+  $('bg').value = 'transparent';
+  $('customBgColor').value = '#3a2a5a';
+  updateBgUI();
+  $('glossEnv').checked = true;
+  $('autoBtn').textContent = '▶ 自動旋轉';
+  $('autoBtn').classList.remove('pri');
+  makeTintedSilhouette.cache = {};
+  _fisheyeCache.key = null;
+  setBorderAlphaForCraft(S.craft);
+  setStatus('已重設所有設定', 'ok');
+});
+
+/* =========================================================
+   DRAG
+   ========================================================= */
+stage.addEventListener('pointerdown', e => {
+  S.dragging = true;
+  stage.classList.add('dragging');
+  S.dragStart = { x: e.clientX, y: e.clientY };
+  S.dragAngleStart = { x: S.angleX, y: S.angleY };
+  try { stage.setPointerCapture(e.pointerId); } catch(err){}
+  e.preventDefault();
+});
+stage.addEventListener('pointermove', e => {
+  if (!S.dragging) return;
+  const dx = e.clientX - S.dragStart.x;
+  const dy = e.clientY - S.dragStart.y;
+  S.angleX = clamp(S.dragAngleStart.x + dx * 0.4, -60, 60);
+  S.angleY = clamp(S.dragAngleStart.y + dy * 0.4, -60, 60);
+  $('angleX').value = Math.round(S.angleX);
+  $('angleY').value = Math.round(S.angleY);
+  $('angleXVal').textContent = Math.round(S.angleX) + '°';
+  $('angleYVal').textContent = Math.round(S.angleY) + '°';
+  $('angleInfo').textContent = `X ${Math.round(S.angleX)}°  ·  Y ${Math.round(S.angleY)}°`;
+});
+function endDrag(e){
+  if (S.dragging){
+    S.dragging = false;
+    stage.classList.remove('dragging');
+    try { stage.releasePointerCapture(e.pointerId); } catch(err){}
+  }
+}
+stage.addEventListener('pointerup', endDrag);
+stage.addEventListener('pointercancel', endDrag);
+stage.addEventListener('pointerleave', endDrag);
+
+/* =========================================================
+   EXPORT PNG
+   ========================================================= */
+$('pngBtn').addEventListener('click', () => {
+  try {
+    const scale = 2;
+    const W = stage.width * scale, H = stage.height * scale;
+    const out = mk(W, H);
+    const og = out.getContext('2d');
+    const oldW = stage.width, oldH = stage.height;
+    stage.width = W; stage.height = H;
+    render();
+    og.drawImage(stage, 0, 0);
+    stage.width = oldW; stage.height = oldH;
+    render();
+    out.toBlob(blob => {
+      if (!blob){ setStatus('PNG 匯出失敗', 'err'); return; }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sticker_${Date.now()}.png`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      setStatus('PNG 已匯出 ✓（透明背景會保留）', 'ok');
+    }, 'image/png');
+  } catch(err){
+    console.error(err);
+    setStatus('PNG 匯出失敗: ' + err.message, 'err');
+  }
+});
+
+/* =========================================================
+   EXPORT WEBM
+   ========================================================= */
+$('webmBtn').addEventListener('click', async () => {
+  if (recording) return;
+  if (typeof MediaRecorder === 'undefined' || !stage.captureStream){
+    setStatus('瀏覽器唔支援影片錄製', 'err');
+    return;
+  }
+
+  const duration = S.videoDuration;
+  const scale = S.videoScale;
+  const quality = S.videoQuality;
+  const fps = S.videoFps;
+
+  const recW = Math.round(stage.width * scale);
+  const recH = Math.round(stage.height * scale);
+  recordCanvas = mk(recW, recH);
+  recordCtx = recordCanvas.getContext('2d');
+  recordCtx.imageSmoothingEnabled = true;
+  recordCtx.imageSmoothingQuality = 'high';
+
+  // WebM has no alpha → if the background is transparent, fill with black first
+  // so we don't get any surprise colors bleeding through.
+  const bgIsTransparent = (S.bg === 'transparent');
+
+  const baseMbps = quality === 'high' ? 22 : quality === 'balanced' ? 12 : 6;
+  const scaleFactor = (recW * recH) / (1100 * 800);
+  const mbps = Math.max(1.5, baseMbps * Math.max(0.3, scaleFactor));
+  const bitrate = Math.round(mbps * 1_000_000);
+
+  let mime = 'video/webm';
+  if (quality === 'fast'){
+    if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8'))
+      mime = 'video/webm;codecs=vp8';
+  } else {
+    if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9'))
+      mime = 'video/webm;codecs=vp9';
+    else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8'))
+      mime = 'video/webm;codecs=vp8';
+  }
+
+  recording = true;
+  $('webmBtn').disabled = true;
+  $('pngBtn').disabled = true;
+  progressEl.classList.add('on');
+  progressBar.style.width = '0%';
+
+  const wasAuto = S.auto;
+  const wasX = S.angleX, wasY = S.angleY;
+
+  try {
+    // Patch the recording copy: pre-fill black if transparent bg
+    const originalRecordDraw = () => {
+      if (bgIsTransparent){
+        recordCtx.fillStyle = '#000';
+        recordCtx.fillRect(0, 0, recordCanvas.width, recordCanvas.height);
+      }
+      recordCtx.drawImage(stage, 0, 0, recordCanvas.width, recordCanvas.height);
+    };
+    // We'll use a flag in the main loop to call this
+    // Simplest: override recordCtx.drawImage with a wrapper
+    const stageDraw = recordCtx.drawImage.bind(recordCtx);
+    recordCtx.drawImage = function(...args){
+      if (bgIsTransparent){
+        recordCtx.fillStyle = '#000';
+        recordCtx.fillRect(0, 0, recordCanvas.width, recordCanvas.height);
+      }
+      return stageDraw(...args);
+    };
+
+    const stream = recordCanvas.captureStream(fps);
+    const rec = new MediaRecorder(stream, {
+      mimeType: mime,
+      videoBitsPerSecond: bitrate
+    });
+    const chunks = [];
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+    const done = new Promise(r => { rec.onstop = r; });
+
+    S.angleX = 0; S.angleY = 0;
+    autoAngle = 0;
+    S.auto = true;
+    $('autoBtn').textContent = '⏸ 停止旋轉';
+    $('autoBtn').classList.add('pri');
+
+    await new Promise(r => requestAnimationFrame(r));
+
+    rec.start(150);
+    const startT = performance.now();
+    await new Promise(resolve => {
+      function tick(){
+        const el = (performance.now() - startT) / 1000;
+        progressBar.style.width = Math.min(100, el/duration*100).toFixed(1) + '%';
+        setStatus(`🎬 錄影中… ${el.toFixed(1)}s / ${duration}s · ${recW}×${recH} · ${fps}fps`);
+        if (el >= duration) resolve();
+        else requestAnimationFrame(tick);
+      }
+      tick();
+    });
+
+    await new Promise(r => setTimeout(r, 250));
+    rec.stop();
+    await done;
+
+    S.auto = wasAuto;
+    S.angleX = wasX; S.angleY = wasY;
+    $('autoBtn').textContent = S.auto ? '⏸ 停止旋轉' : '▶ 自動旋轉';
+    $('autoBtn').classList.toggle('pri', S.auto);
+    $('angleX').value = Math.round(S.angleX);
+    $('angleY').value = Math.round(S.angleY);
+    $('angleXVal').textContent = Math.round(S.angleX) + '°';
+    $('angleYVal').textContent = Math.round(S.angleY) + '°';
+
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sticker_${recW}x${recH}_${Date.now()}.webm`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    setStatus(`WebM 已匯出 ✓  ${recW}×${recH}${bgIsTransparent ? '（透明背景以黑色顯示）' : ''}`, 'ok');
+  } catch(err){
+    console.error(err);
+    setStatus('錄影失敗: ' + err.message, 'err');
+  } finally {
+    recording = false;
+    recordCanvas = null; recordCtx = null;
+    $('webmBtn').disabled = false;
+    $('pngBtn').disabled = false;
+    progressEl.classList.remove('on');
+    progressBar.style.width = '0%';
+  }
+});
+
+/* =========================================================
+   INIT
+   ========================================================= */
+buildCraftGrid();
+_demoImage = makeDemoImage();
+updateThumb();
+setBorderAlphaForCraft(S.craft);
+setStatus('已載入範例貼紙 · 揀滴膠3D睇下加深嘅立體感', 'ok');
+
+})();
+</script>
+</body>
+</html>
